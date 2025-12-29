@@ -129,13 +129,13 @@ class NewsAIScheduler:
                 minute_offset = i * 2  # 2-minute stagger
 
                 if category == 'live':
-                    # Every 15 minutes, staggered
-                    cron_expr = f"{minute_offset}-59/15 * * * *"
+                    # Every 15 minutes
+                    cron_expr = "*/15 * * * *"
                 elif category == 'finance':
-                    # Every hour, staggered
+                    # Every hour, staggered by minutes
                     cron_expr = f"{minute_offset} * * * *"
                 else:
-                    # Every 6 hours, staggered
+                    # Every 6 hours, staggered by minutes
                     cron_expr = f"{minute_offset} */6 * * *"
 
                 self.scheduler.add_job(

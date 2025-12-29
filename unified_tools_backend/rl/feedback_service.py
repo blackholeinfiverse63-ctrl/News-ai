@@ -3,10 +3,66 @@ from datetime import datetime
 import asyncio
 import json
 import os
+import random
+import math
 from pathlib import Path
 from app.core.database import db_service
 from app.services.uniguru import uniguru_service
 from agents.agent_registry import agent_registry
+
+class CorrectionBandit:
+    def __init__(self):
+        self.arms = {
+            "uniguru_resummarization": {"pulls": 0, "rewards": 0.0},
+            "tone_adjustment": {"pulls": 0, "rewards": 0.0},
+            "engagement_boost": {"pulls": 0, "rewards": 0.0},
+            "quality_enhancement": {"pulls": 0, "rewards": 0.0},
+            "content_expansion": {"pulls": 0, "rewards": 0.0}
+        }
+    
+    def select_arm(self) -> str:
+        """Select correction strategy using UCB1 algorithm"""
+        total_pulls = sum(arm["pulls"] for arm in self.arms.values())
+        if total_pulls == 0:
+            return random.choice(list(self.arms.keys()))
+        
+        best_arm = None
+        best_ucb = -float('inf')
+        
+        for arm_name, arm_data in self.arms.items():
+            if arm_data["pulls"] == 0:
+                return arm_name
+            
+            avg_reward = arm_data["rewards"] / arm_data["pulls"]
+            ucb = avg_reward + math.sqrt(2 * math.log(total_pulls) / arm_data["pulls"])
+            
+            if ucb > best_ucb:
+                best_ucb = ucb
+                best_arm = arm_name
+        
+        return best_arm
+    
+    def update_arm(self, arm_name: str, reward: float):
+        """Update arm statistics with reward"""
+        if arm_name in self.arms:
+            self.arms[arm_name]["pulls"] += 1
+            self.arms[arm_name]["rewards"] += reward
+    
+    def get_arm_stats(self) -> Dict[str, Dict[str, Any]]:
+        """Get statistics for all arms"""
+        stats = {}
+        for arm_name, arm_data in self.arms.items():
+            pulls = arm_data["pulls"]
+            if pulls > 0:
+                avg_reward = arm_data["rewards"] / pulls
+            else:
+                avg_reward = 0.0
+            stats[arm_name] = {
+                "pulls": pulls,
+                "avg_reward": round(avg_reward, 3),
+                "total_rewards": round(arm_data["rewards"], 3)
+            }
+        return stats
 
 class RLFeedbackService:
     def __init__(self):

@@ -8,7 +8,7 @@ class DatabaseService:
     def __init__(self):
         self.client: Optional[AsyncIOMotorClient] = None
         self.database: Optional[AsyncIOMotorDatabase] = None
-        self.mongo_url = os.getenv("MONGODB_URL", "mongodb+srv://localhost:27017")
+        self.mongo_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
         self.database_name = os.getenv("DATABASE_NAME", "news_ai_db")
 
     async def connect(self):
@@ -18,10 +18,10 @@ class DatabaseService:
             self.database = self.client[self.database_name]
             # Test the connection
             await self.client.admin.command('ping')
-            print("✅ MongoDB connection established")
+            print("MongoDB connection established")
             return True
         except Exception as e:
-            print(f"❌ MongoDB connection failed: {e}")
+            print(f"MongoDB connection failed: {e}")
             self.client = None
             self.database = None
             return False
@@ -30,7 +30,7 @@ class DatabaseService:
         """Disconnect from MongoDB"""
         if self.client:
             self.client.close()
-            print("✅ MongoDB connection closed")
+            print("MongoDB connection closed")
 
     async def get_collection(self, collection_name: str):
         """Get a collection from the database"""

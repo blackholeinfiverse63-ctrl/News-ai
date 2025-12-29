@@ -1,10 +1,17 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import asyncio
 from datetime import datetime
+from time import time
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
+from app.config import settings
+from app.logging import setup_logging, get_logger, log_request
 from app.core.database import db_service
 from app.services.uniguru import uniguru_service
 from agents.agent_registry import agent_registry
@@ -14,6 +21,10 @@ from bhiv_connector.bhiv_service import bhiv_service
 from unified_pipeline import unified_pipeline
 from scheduler import scheduler
 from queue_worker import background_queue
+
+# Setup structured logging
+setup_logging()
+logger = get_logger(__name__)
 
 # Pydantic models
 class NewsProcessingRequest(BaseModel):
@@ -47,20 +58,65 @@ class UnifiedPipelineRequest(BaseModel):
         "avatar_ready": True
     }
 
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # FastAPI app
 app = FastAPI(
     title="News AI Backend + RL Automation",
     description="Complete news processing backend with MCP agents, RL feedback, and BHIV integration",
-    version="2.0.0"
+    version="2.0.0",
+    debug=settings.debug
 )
+
+# Rate limiting middleware
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time()
+
+    # Get client IP
+    client_ip = request.client.host if request.client else "unknown"
+
+    try:
+        response = await call_next(request)
+        duration = time() - start_time
+
+        log_request(
+            logger,
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration,
+            client_ip
+        )
+
+        return response
+
+    except Exception as e:
+        duration = time() - start_time
+        logger.error(f"Request failed: {request.method} {request.url.path}", extra={
+            "extra_fields": {
+                "method": request.method,
+                "path": request.url.path,
+                "duration_ms": round(duration * 1000, 2),
+                "client_ip": client_ip,
+                "error": str(e)
+            }
+        })
+        raise
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
 )
 
 # Startup event
@@ -80,7 +136,8 @@ async def startup_event():
 
 # Health check
 @app.get("/")
-async def root():
+@limiter.limit(f"{settings.rate_limit_requests_per_minute}/minute")
+async def root(request: Request):
     return {
         "message": "News AI Backend + RL Automation - Sprint Complete ✅",
         "version": "2.0.0",
@@ -106,26 +163,101 @@ async def root():
     }
 
 @app.get("/health")
-async def health_check():
+@limiter.limit(f"{settings.rate_limit_requests_per_minute}/minute")
+async def health_check(request: Request):
     """Comprehensive health check"""
-    bhiv_status = await bhiv_service.check_bhiv_status()
-    websocket_stats = await bhiv_service.get_websocket_stats()
+    try:
+        # Database health
+        db_healthy = db_service.database is not None
+        db_status = "healthy" if db_healthy else "unhealthy"
 
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "services": {
-            "database": "connected" if db_service.database else "disconnected",
-            "uniguru": "configured" if uniguru_service.api_key else "not_configured",
-            "bhiv_core": bhiv_status.get("status", "unknown"),
-            "websocket": websocket_stats,
-            "agents": "loaded",
-            "rl_feedback": "active",
-            "automator": "ready"
-        },
-        "sprint_status": "complete",
-        "production_ready": True
-    }
+        # External services health
+        uniguru_healthy = uniguru_service.api_key is not None
+        uniguru_status = "configured" if uniguru_healthy else "not_configured"
+
+        # BHIV Core health
+        bhiv_status = await bhiv_service.check_bhiv_status()
+        bhiv_healthy = bhiv_status.get("status") == "healthy"
+
+        # WebSocket health
+        websocket_stats = await bhiv_service.get_websocket_stats()
+        websocket_healthy = websocket_stats.get("connections", 0) >= 0
+
+        # Agent registry health
+        agents_healthy = len(agent_registry.agents) > 0
+
+        # RL feedback health
+        rl_healthy = True  # Assume healthy if service is loaded
+
+        # Automator health
+        automator_healthy = True  # Assume healthy if service is loaded
+
+        # Overall health
+        all_services_healthy = all([
+            db_healthy,
+            uniguru_healthy,
+            bhiv_healthy,
+            websocket_healthy,
+            agents_healthy,
+            rl_healthy,
+            automator_healthy
+        ])
+
+        overall_status = "healthy" if all_services_healthy else "degraded"
+
+        return {
+            "status": overall_status,
+            "timestamp": datetime.now().isoformat(),
+            "version": "2.0.0",
+            "environment": settings.environment,
+            "uptime": "unknown",  # Could be enhanced with app startup time
+            "services": {
+                "database": {
+                    "status": db_status,
+                    "details": "MongoDB connection active" if db_healthy else "MongoDB connection failed"
+                },
+                "uniguru": {
+                    "status": uniguru_status,
+                    "details": "API key configured" if uniguru_healthy else "API key not configured"
+                },
+                "bhiv_core": {
+                    "status": bhiv_status.get("status", "unknown"),
+                    "details": bhiv_status.get("message", "BHIV Core integration status")
+                },
+                "websocket": {
+                    "status": "healthy" if websocket_healthy else "unhealthy",
+                    "details": f"WebSocket server stats: {websocket_stats}"
+                },
+                "agents": {
+                    "status": "healthy" if agents_healthy else "unhealthy",
+                    "details": f"{len(agent_registry.agents)} agents registered"
+                },
+                "rl_feedback": {
+                    "status": "healthy" if rl_healthy else "unhealthy",
+                    "details": "RL feedback service active"
+                },
+                "automator": {
+                    "status": "healthy" if automator_healthy else "unhealthy",
+                    "details": "Pipeline automator ready"
+                }
+            },
+            "system_info": {
+                "rate_limit_per_minute": settings.rate_limit_requests_per_minute,
+                "cors_origins": settings.cors_origins,
+                "debug_mode": settings.debug
+            },
+            "sprint_status": "complete",
+            "production_ready": True
+        }
+
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.now().isoformat(),
+            "error": f"Health check failed: {str(e)}",
+            "services": {},
+            "production_ready": False
+        }
 
 # Unified Pipeline Endpoint (Production Ready)
 @app.post("/v1/run_pipeline")

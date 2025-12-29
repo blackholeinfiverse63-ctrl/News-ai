@@ -82,6 +82,11 @@ class BackgroundQueue:
 
         self.running = False
 
+        # Thread synchronization
+        self.queue_lock = threading.Lock()
+        self.stats_lock = threading.Lock()
+        self.active_workers_lock = threading.Lock()
+
     async def start(self):
         """Start the background queue processor"""
         if self.running:
@@ -105,17 +110,11 @@ class BackgroundQueue:
 
         logger.info("Stopping background queue...")
         self.running = False
-        self.executor = None
-        self.queue_lock = threading.Lock()
-        self.executor = None
-        self.queue_lock = threading.Lock()
 
-        # Cancel all worker tasks
-        for task in self.worker_tasks:
-            task.cancel()
-
-        # Wait for tasks to complete
-        await asyncio.gather(*self.worker_tasks, return_exceptions=True)
+        # Shutdown the thread pool executor
+        if self.executor:
+            self.executor.shutdown(wait=True)
+            self.executor = None
 
         logger.info("Background queue stopped")
 
@@ -141,8 +140,9 @@ class BackgroundQueue:
             heapq.heappush(self.job_queue, job)
         self.jobs[job_id] = job
 
-        self.stats["jobs_added"] += 1
-        self.stats["queue_size"] = len(self.job_queue)
+        with self.stats_lock:
+            self.stats["jobs_added"] += 1
+            self.stats["queue_size"] = len(self.job_queue)
 
         logger.info(f"Added job {job_id} to queue (priority: {priority}, type: {job_type})")
         return job_id
@@ -160,20 +160,27 @@ class BackgroundQueue:
                         continue
 
                     job = heapq.heappop(self.job_queue)
-                    self.stats["queue_size"] = len(self.job_queue)
-                self.active_workers += 1
-                self.stats["active_workers"] = self.active_workers
+                    with self.stats_lock:
+                        self.stats["queue_size"] = len(self.job_queue)
+                with self.active_workers_lock:
+                    self.active_workers += 1
+                    with self.stats_lock:
+                        self.stats["active_workers"] = self.active_workers
 
                 # Process the job
                 asyncio.run(self._process_job_async(job))
 
-                self.active_workers -= 1
-                self.stats["active_workers"] = self.active_workers
+                with self.active_workers_lock:
+                    self.active_workers -= 1
+                    with self.stats_lock:
+                        self.stats["active_workers"] = self.active_workers
 
             except Exception as e:
                 logger.error(f"Worker {worker_id} error: {str(e)}")
-                self.active_workers -= 1
-                self.stats["active_workers"] = self.active_workers
+                with self.active_workers_lock:
+                    self.active_workers -= 1
+                    with self.stats_lock:
+                        self.stats["active_workers"] = self.active_workers
                 time.sleep(5)  # Back off on errors
 
         logger.info(f"Worker {worker_id} stopped")
@@ -191,7 +198,8 @@ class BackgroundQueue:
 
             job.status = JobStatus.COMPLETED
             job.completed_at = datetime.now()
-            self.stats["jobs_completed"] += 1
+            with self.stats_lock:
+                self.stats["jobs_completed"] += 1
 
             logger.info(f"Job {job.job_id} completed successfully")
 
@@ -230,13 +238,15 @@ class BackgroundQueue:
             # Re-queue the job with delay
             asyncio.create_task(self._schedule_retry(job, delay))
 
-            self.stats["jobs_retried"] += 1
+            with self.stats_lock:
+                self.stats["jobs_retried"] += 1
             logger.info(f"Job {job.job_id} scheduled for retry {job.retry_count}/{job.max_retries} in {delay}s")
 
         else:
             # Mark as failed
             job.status = JobStatus.FAILED
-            self.stats["jobs_failed"] += 1
+            with self.stats_lock:
+                self.stats["jobs_failed"] += 1
             logger.error(f"Job {job.job_id} failed permanently after {job.retry_count} retries")
 
     def _determine_retry_action(self, error_message: str) -> Dict[str, Any]:
@@ -274,7 +284,8 @@ class BackgroundQueue:
         # Re-queue the job
         with self.queue_lock:
             heapq.heappush(self.job_queue, job)
-            self.stats["queue_size"] = len(self.job_queue)
+            with self.stats_lock:
+                self.stats["queue_size"] = len(self.job_queue)
 
         logger.info(f"Job {job.job_id} re-queued for retry")
 
