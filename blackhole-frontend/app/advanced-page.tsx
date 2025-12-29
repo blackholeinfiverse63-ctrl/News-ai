@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Zap, 
@@ -30,10 +30,23 @@ const checkBackendHealth = async () => {
 
 const runUnifiedWorkflow = async (url: string) => {
   try {
-    const response = await fetch('http://localhost:8000/api/unified-news-workflow', {
+    const response = await fetch('http://localhost:8000/v1/run_pipeline', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({
+        url,
+        options: {
+          enable_bhiv_push: true,
+          enable_audio: true,
+          channels: ["news_channel_1"],
+          avatars: ["avatar_alice"],
+          voice: "default",
+          force_correction: false,
+          tone: "neutral",
+          language: "en",
+          avatar_ready: true
+        }
+      })
     })
     return await response.json()
   } catch (error) {
@@ -102,12 +115,38 @@ export default function AdvancedNewsAnalysisPage() {
   const [progress, setProgress] = useState(0)
   const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [wsMessages, setWsMessages] = useState<any[]>([])
+  const wsRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
     checkBackend()
     const interval = setInterval(checkBackend, 30000)
     return () => clearInterval(interval)
   }, [])
+  
+  useEffect(() => {
+    if (backendStatus === 'online') {
+      const ws = new WebSocket('ws://localhost:8765/updates')
+      wsRef.current = ws
+  
+      ws.onopen = () => {
+        console.log('WebSocket connected')
+      }
+  
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        setWsMessages(prev => [...prev, data])
+      }
+  
+      ws.onclose = () => {
+        console.log('WebSocket disconnected')
+      }
+  
+      return () => {
+        ws.close()
+      }
+    }
+  }, [backendStatus])
 
   useEffect(() => {
     if (isAnalyzing) {
