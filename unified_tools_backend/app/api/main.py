@@ -259,20 +259,37 @@ async def health_check(request: Request):
             "production_ready": False
         }
 
-# Unified Pipeline Endpoint (Production Ready)
+# Unified Pipeline Endpoint (Production Ready - Async with Job Tracking)
 @app.post("/v1/run_pipeline")
 async def run_unified_pipeline(request: UnifiedPipelineRequest):
-    """Unified pipeline endpoint for complete News AI processing"""
+    """Unified pipeline endpoint for complete News AI processing - Async with job tracking"""
     try:
-        result = await unified_pipeline.run_full_pipeline(request.dict())
+        # Validate request
+        validation_result = unified_pipeline._validate_request(request.dict())
+        if not validation_result["valid"]:
+            raise HTTPException(status_code=400, detail=validation_result["errors"])
 
-        if not result.get("success"):
-            raise HTTPException(status_code=500, detail=result.get("error", "Pipeline failed"))
+        # Submit to background queue for async processing
+        job_id = await background_queue.add_job(
+            job_type="news_processing",
+            payload=request.dict(),
+            priority=10  # High priority for direct API calls
+        )
 
-        return result
+        return {
+            "success": True,
+            "job_id": job_id,
+            "status": "queued",
+            "message": "Pipeline job submitted successfully",
+            "check_status_url": f"/api/queue/job/{job_id}",
+            "estimated_completion": "2-5 minutes",
+            "timestamp": datetime.now().isoformat()
+        }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unified pipeline failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to submit pipeline job: {str(e)}")
 
 # Core processing endpoints
 @app.post("/api/process-news")
