@@ -1,0 +1,49 @@
+name: CI for Stable-v1
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      tag_version:
+        description: 'Version to tag (e.g., stable-v1)'
+        required: true
+        default: 'stable-v1'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Install dependencies
+      run: |
+        cd unified_tools_backend
+        pip install -r requirements.txt
+    - name: Run tests
+      run: |
+        cd unified_tools_backend
+        python run_full_test.py
+    - name: Check test results
+      run: |
+        if [ ! -f final_test_results.json ]; then
+          echo "Test results file not found"
+          exit 1
+        fi
+        # Add more validation if needed
+
+  tag-stable-v1:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.tag_version == 'stable-v1'
+    steps:
+    - uses: actions/checkout@v3
+    - name: Create tag
+      run: |
+        git tag ${{ github.event.inputs.tag_version }}
+        git push origin ${{ github.event.inputs.tag_version }}
