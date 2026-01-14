@@ -65,7 +65,7 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="News AI Backend + RL Automation",
     description="Complete news processing backend with MCP agents, RL feedback, and BHIV integration",
-    version="2.0.0",
+    version="1.0.0",
     debug=settings.debug
 )
 
@@ -158,7 +158,7 @@ async def root(request: Request):
             "bhiv_push": "/api/bhiv/push",
             "matrix_push": "/api/bhiv/matrix-push",
             "agents": "/api/agents",
-            "rl_metrics": "/api/rl/metrics"
+            "rl_metrics": "/api/rl/metrics",\n        "unified_pipeline": "/v1/run_pipeline"
         }
     }
 
@@ -246,7 +246,7 @@ async def health_check(request: Request):
                 "cors_origins": settings.cors_origins,
                 "debug_mode": settings.debug
             },
-            "sprint_status": "complete",
+            "sprint_status": "stable",
             "production_ready": True
         }
 
