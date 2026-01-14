@@ -26,7 +26,7 @@ from queue_worker import background_queue
 setup_logging()
 logger = get_logger(__name__)
 
-# Pydantic models
+# Pydantic models - Request and Response schemas for API contract locking
 class NewsProcessingRequest(BaseModel):
     url: str
     enable_full_pipeline: bool = True
@@ -34,15 +34,35 @@ class NewsProcessingRequest(BaseModel):
     channel: Optional[str] = None
     avatar: Optional[str] = None
 
+class NewsProcessingResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    message: str
+    timestamp: str
+    job_id: Optional[str] = None
+    status: Optional[str] = None
+
 class BHIVPushRequest(BaseModel):
     channel: str
     avatar: str
     content: Dict[str, Any]
 
+class BHIVPushResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    message: str
+    timestamp: str
+
 class ChannelAvatarMatrixRequest(BaseModel):
     content: Dict[str, Any]
     channels: List[str] = ["news_channel_1", "news_channel_2", "news_channel_3"]
     avatars: List[str] = ["avatar_alice", "avatar_bob", "avatar_charlie"]
+
+class ChannelAvatarMatrixResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    message: str
+    timestamp: str
 
 class UnifiedPipelineRequest(BaseModel):
     url: str
@@ -57,6 +77,111 @@ class UnifiedPipelineRequest(BaseModel):
         "language": "en",
         "avatar_ready": True
     }
+
+class UnifiedPipelineResponse(BaseModel):
+    success: bool
+    job_id: str
+    status: str
+    message: str
+    check_status_url: str
+    estimated_completion: str
+    timestamp: str
+
+class HealthResponse(BaseModel):
+    status: str
+    timestamp: str
+    version: str
+    environment: str
+    uptime: str
+    services: Dict[str, Dict[str, str]]
+    system_info: Dict[str, Any]
+    sprint_status: str
+    production_ready: bool
+
+class AgentsResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class RLFeedbackResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class UniguruResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class NewsItemsResponse(BaseModel):
+    success: bool
+    data: List[Dict[str, Any]]
+    count: int
+    timestamp: str
+
+class JobStatusResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class RootResponse(BaseModel):
+    message: str
+    version: str
+    status: str
+    features: List[str]
+    endpoints: Dict[str, str]
+
+class BHIVStatusResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class BHIVHistoryResponse(BaseModel):
+    success: bool
+    data: List[Dict[str, Any]]
+    count: int
+    timestamp: str
+
+class AgentTaskResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class TaskStatusResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class WebSocketStatsResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class SampleValidationResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    message: str
+    timestamp: str
+
+class SchedulerResponse(BaseModel):
+    success: bool
+    message: str
+    timestamp: str
+
+class SchedulerStatsResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class QueueStatsResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
+
+class QueueJobResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    timestamp: str
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -73,6 +198,14 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+# API Version middleware
+@app.middleware("http")
+async def api_version_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-API-Version"] = "v1.0.0"
+    response.headers["X-Schema-Frozen"] = "true"
+    return response
 
 # Request logging middleware
 @app.middleware("http")
@@ -158,11 +291,12 @@ async def root(request: Request):
             "bhiv_push": "/api/bhiv/push",
             "matrix_push": "/api/bhiv/matrix-push",
             "agents": "/api/agents",
-            "rl_metrics": "/api/rl/metrics",\n        "unified_pipeline": "/v1/run_pipeline"
+            "rl_metrics": "/api/rl/metrics",
+            "unified_pipeline": "/v1/run_pipeline"
         }
     }
 
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse)
 @limiter.limit(f"{settings.rate_limit_requests_per_minute}/minute")
 async def health_check(request: Request):
     """Comprehensive health check"""
@@ -205,13 +339,13 @@ async def health_check(request: Request):
 
         overall_status = "healthy" if all_services_healthy else "degraded"
 
-        return {
-            "status": overall_status,
-            "timestamp": datetime.now().isoformat(),
-            "version": "2.0.0",
-            "environment": settings.environment,
-            "uptime": "unknown",  # Could be enhanced with app startup time
-            "services": {
+        return HealthResponse(
+            status=overall_status,
+            timestamp=datetime.now().isoformat(),
+            version="1.0.0",
+            environment=settings.environment,
+            uptime="unknown",  # Could be enhanced with app startup time
+            services={
                 "database": {
                     "status": db_status,
                     "details": "MongoDB connection active" if db_healthy else "MongoDB connection failed"
@@ -241,26 +375,30 @@ async def health_check(request: Request):
                     "details": "Pipeline automator ready"
                 }
             },
-            "system_info": {
+            system_info={
                 "rate_limit_per_minute": settings.rate_limit_requests_per_minute,
                 "cors_origins": settings.cors_origins,
                 "debug_mode": settings.debug
             },
-            "sprint_status": "stable",
-            "production_ready": True
-        }
+            sprint_status="stable",
+            production_ready=True
+        )
 
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "timestamp": datetime.now().isoformat(),
-            "error": f"Health check failed: {str(e)}",
-            "services": {},
-            "production_ready": False
-        }
+        return HealthResponse(
+            status="unhealthy",
+            timestamp=datetime.now().isoformat(),
+            version="1.0.0",
+            environment=settings.environment,
+            uptime="unknown",
+            services={},
+            system_info={},
+            sprint_status="error",
+            production_ready=False
+        )
 
 # Unified Pipeline Endpoint (Production Ready - Async with Job Tracking)
-@app.post("/v1/run_pipeline")
+@app.post("/v1/run_pipeline", response_model=UnifiedPipelineResponse)
 async def run_unified_pipeline(request: UnifiedPipelineRequest):
     """Unified pipeline endpoint for complete News AI processing - Async with job tracking"""
     try:
@@ -276,15 +414,15 @@ async def run_unified_pipeline(request: UnifiedPipelineRequest):
             priority=10  # High priority for direct API calls
         )
 
-        return {
-            "success": True,
-            "job_id": job_id,
-            "status": "queued",
-            "message": "Pipeline job submitted successfully",
-            "check_status_url": f"/api/queue/job/{job_id}",
-            "estimated_completion": "2-5 minutes",
-            "timestamp": datetime.now().isoformat()
-        }
+        return UnifiedPipelineResponse(
+            success=True,
+            job_id=job_id,
+            status="queued",
+            message="Pipeline job submitted successfully",
+            check_status_url=f"/api/queue/job/{job_id}",
+            estimated_completion="2-5 minutes",
+            timestamp=datetime.now().isoformat()
+        )
 
     except HTTPException:
         raise

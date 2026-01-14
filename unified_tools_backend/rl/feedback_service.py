@@ -184,6 +184,10 @@ class RLFeedbackService:
     async def _calculate_tone_score(self, content: str, script: str) -> float:
         """Calculate tone appropriateness score (0-1)"""
         try:
+            # Define keyword lists for consistency checking
+            emotional_words = ["shocking", "outrageous", "unbelievable", "devastating", "incredible"]
+            neutral_words = ["according to", "reported", "stated", "confirmed", "announced"]
+
             # Analyze content tone using Uniguru sentiment analysis
             sentiment_result = await uniguru_service.analyze_sentiment(content)
 
@@ -199,9 +203,6 @@ class RLFeedbackService:
                     tone_score = 0.4
             else:
                 # Fallback: keyword-based analysis
-                emotional_words = ["shocking", "outrageous", "unbelievable", "devastating", "incredible"]
-                neutral_words = ["according to", "reported", "stated", "confirmed", "announced"]
-
                 emotional_count = sum(1 for word in emotional_words if word in content.lower())
                 neutral_count = sum(1 for word in neutral_words if word in content.lower())
 
