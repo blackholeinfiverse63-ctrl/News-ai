@@ -169,6 +169,39 @@ class TestAPIContractLocking:
         for field in required_fields:
             assert field in data
 
+    def test_openapi_spec_endpoint(self):
+        """Test versioned OpenAPI spec endpoint"""
+        response = self.client.get("/v1/openapi.json")
+
+        assert response.status_code == 200
+        spec = response.json()
+
+        # Check OpenAPI structure
+        assert "openapi" in spec
+        assert "info" in spec
+        assert "paths" in spec
+
+        # Check contract metadata
+        assert "x-api-contract" in spec["info"]
+        contract = spec["info"]["x-api-contract"]
+        assert contract["version"] == "v1.0.0"
+        assert contract["frozen"] is True
+        assert contract["enforced"] is True
+        assert "last_updated" in contract
+        assert contract["breaking_changes_allowed"] is False
+
+    def test_contract_enforcement_headers(self):
+        """Test that contract enforcement headers are present"""
+        response = self.client.get("/health")
+
+        assert response.status_code == 200
+        assert "X-API-Version" in response.headers
+        assert response.headers["X-API-Version"] == "v1.0.0"
+        assert "X-Schema-Frozen" in response.headers
+        assert response.headers["X-Schema-Frozen"] == "true"
+        assert "X-Contract-Enforced" in response.headers
+        assert response.headers["X-Contract-Enforced"] == "true"
+
     def test_websocket_stats_response_schema(self):
         """Test websocket stats endpoint response schema"""
         response = self.client.get("/api/websocket/stats")

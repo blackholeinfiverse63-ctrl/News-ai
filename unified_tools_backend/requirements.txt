@@ -17,6 +17,9 @@ pymongo==4.6.0
 websockets==12.0
 APScheduler==3.10.4
 slowapi==0.1.9
+pytest==7.4.4
+pytest-asyncio==0.21.1
+jsonschema==4.19.2
 #langgraph==0.0.40
 #langchain==0.1.0
 #langchain-community==0.0.13

@@ -52,8 +52,8 @@ jobs:
         fi
     - name: Validate scheduler documentation
       run: |
-        if [ ! -f docs/scheduler_policy.md ]; then
-          echo "Scheduler policy documentation missing"
+        if [ ! -f docs/scheduler_behavior_documentation.md ]; then
+          echo "Scheduler behavior documentation missing"
           exit 1
         fi
     - name: Tag stable-v1 only if all tests pass
