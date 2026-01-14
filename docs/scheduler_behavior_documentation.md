@@ -1,264 +1,200 @@
-# News AI Scheduler Behavior Documentation
+# Scheduler Behavior and Run Policy Documentation
 
 ## Overview
 
-The News AI Scheduler is responsible for automated news processing across multiple categories and sources. It uses APScheduler with cron-based triggers to ensure regular content updates while maintaining system stability through background queue processing.
+The News AI Backend includes an automated scheduler that processes news from various sources at predefined intervals. This document outlines the scheduler's behavior, run policies, and operational guidelines.
 
-## Architecture
+## Scheduler Architecture
 
-### Components
-- **APScheduler**: Core scheduling engine using AsyncIOScheduler
-- **Background Queue**: Job processing system with priority queues
-- **Unified Pipeline**: News processing pipeline with RL corrections
-- **Category-based Configuration**: Different settings per news category
+The scheduler uses APScheduler with AsyncIO support and maintains jobs in memory. Key characteristics:
 
-### Key Features
-- Cron-based scheduling with UTC timezone
-- Priority-based job queuing
-- Category-specific pipeline options
-- Staggered execution to prevent system overload
-- Comprehensive statistics tracking
+- **Timezone**: UTC
+- **Job Store**: MemoryJobStore (jobs are lost on restart)
+- **Executor**: AsyncIOExecutor
+- **Max Instances**: 3 concurrent jobs
+- **Misfire Grace Time**: 30 seconds
+- **Coalesce**: True (combine missed runs)
 
-## Scheduling Configuration
+## News Categories and Schedules
 
-### News Categories and Intervals
+The scheduler processes news from 5 categories with different frequencies:
 
-| Category | Interval | Sources | Priority | Channels | Avatars | Voice |
-|----------|----------|---------|----------|----------|---------|-------|
-| **live** | Every 15 minutes (`*/15 * * * *`) | 5 major news sites | 10 (Highest) | `news_channel_live` | `avatar_breaking` | `urgent` |
-| **finance** | Every hour (`0 * * * *`) | 5 financial sites | 7 | `news_channel_finance` | `avatar_business` | `professional` |
-| **world** | Every 6 hours (`0 */6 * * *`) | 4 world news sites | 5 | `news_channel_world` | `avatar_global` | `neutral` |
-| **regional** | Every 6 hours (`0 */6 * * *`) | 4 regional sites | 3 | `news_channel_regional` | `avatar_local` | `conversational` |
-| **kids** | Every 6 hours (`0 */6 * * *`) | 4 kids news sites | 1 (Lowest) | `news_channel_kids` | `avatar_fun` | `friendly` |
+### 1. Live News (`live`)
+- **Interval**: Every 15 minutes (`*/15 * * * *`)
+- **Sources**: BBC, Reuters, NYT, Al Jazeera, The Guardian
+- **Priority**: 10 (highest)
+- **Pipeline Options**:
+  - Channels: `news_channel_live`
+  - Avatars: `avatar_breaking`
+  - Voice: `urgent`
+  - BHIV Push: Enabled
+  - Audio: Enabled
 
-### Source Lists
+### 2. Finance News (`finance`)
+- **Interval**: Every hour (`0 * * * *`)
+- **Sources**: Bloomberg, WSJ, FT, CNBC, MarketWatch
+- **Priority**: 7
+- **Pipeline Options**:
+  - Channels: `news_channel_finance`
+  - Avatars: `avatar_business`
+  - Voice: `professional`
 
-#### Live News (15-minute intervals)
-- BBC News (`https://www.bbc.com/news`)
-- Reuters (`https://www.reuters.com/`)
-- New York Times (`https://www.nytimes.com/`)
-- Al Jazeera (`https://www.aljazeera.com/`)
-- The Guardian (`https://www.theguardian.com/international`)
+### 3. World News (`world`)
+- **Interval**: Every 6 hours (`0 */6 * * *`)
+- **Sources**: BBC World, Reuters World, Al Jazeera, DW
+- **Priority**: 5
+- **Pipeline Options**:
+  - Channels: `news_channel_world`
+  - Avatars: `avatar_global`
+  - Voice: `neutral`
 
-#### Finance (Hourly)
-- Bloomberg (`https://www.bloomberg.com/`)
-- Wall Street Journal (`https://www.wsj.com/`)
-- Financial Times (`https://www.ft.com/`)
-- CNBC (`https://www.cnbc.com/`)
-- MarketWatch (`https://www.marketwatch.com/`)
+### 4. Regional News (`regional`)
+- **Interval**: Every 6 hours (`0 */6 * * *`)
+- **Sources**: The Hindu, Indian Express, NDTV, Times of India
+- **Priority**: 3
+- **Pipeline Options**:
+  - Channels: `news_channel_regional`
+  - Avatars: `avatar_local`
+  - Voice: `conversational`
 
-#### World News (6-hour intervals)
-- BBC World (`https://www.bbc.com/news/world`)
-- Reuters World (`https://www.reuters.com/world/`)
-- Al Jazeera News (`https://www.aljazeera.com/news/`)
-- DW News (`https://www.dw.com/en/top-stories/s-9097`)
+### 5. Kids News (`kids`)
+- **Interval**: Every 6 hours (`0 */6 * * *`)
+- **Sources**: Scholastic, Time for Kids, National Geographic Kids, BBC Newsround
+- **Priority**: 1 (lowest)
+- **Pipeline Options**:
+  - Channels: `news_channel_kids`
+  - Avatars: `avatar_fun`
+  - Voice: `friendly`
+  - Audio: Disabled
 
-#### Regional News (6-hour intervals)
-- The Hindu (`https://www.thehindu.com/`)
-- Indian Express (`https://indianexpress.com/`)
-- NDTV (`https://www.ndtv.com/`)
-- Times of India (`https://timesofindia.indiatimes.com/`)
+## Job Staggering
 
-#### Kids News (6-hour intervals)
-- Scholastic (`https://www.scholastic.com/`)
-- Time for Kids (`https://www.timeforkids.com/`)
-- National Geographic Kids (`https://www.nationalgeographic.com/for-kids/`)
-- BBC Newsround (`https://www.bbc.co.uk/newsround`)
+To prevent system overload, jobs within each category are staggered:
 
-## Execution Behavior
+- **Stagger Interval**: 2 minutes between sources
+- **Example**: Finance category jobs run at :00, :02, :04, :06, :08 past each hour
 
-### Job Scheduling
-1. **Initialization**: Scheduler creates cron jobs for each source in each category
-2. **Staggering**: Jobs within the same category are staggered by 2-minute intervals to prevent simultaneous execution
-3. **Priority Assignment**: Jobs are assigned priorities based on category importance
-4. **Queue Submission**: Scheduled jobs submit work to background queue instead of executing directly
+## Run Policy
 
-### Pipeline Options by Category
+### Automatic Processing
+1. Scheduler submits jobs to the background queue instead of processing directly
+2. Each job uses the unified pipeline with category-specific options
+3. Jobs are prioritized based on category importance
+4. Failed jobs are logged but don't stop the scheduler
 
-#### Live News Options
-```json
-{
-  "enable_bhiv_push": true,
-  "enable_audio": true,
-  "channels": ["news_channel_live"],
-  "avatars": ["avatar_breaking"],
-  "voice": "urgent",
-  "force_correction": false
-}
-```
+### Manual Triggers
+The scheduler supports manual trigger endpoints:
 
-#### Finance News Options
-```json
-{
-  "enable_bhiv_push": true,
-  "enable_audio": true,
-  "channels": ["news_channel_finance"],
-  "avatars": ["avatar_business"],
-  "voice": "professional",
-  "force_correction": false
-}
-```
+- **Single Source**: `/api/scheduler/trigger?category=live&source_url=https://...`
+- **Category**: `/api/scheduler/trigger?category=finance` (all sources)
+- **All Categories**: `/api/scheduler/trigger` (one source per category)
 
-#### World/Regional News Options
-```json
-{
-  "enable_bhiv_push": true,
-  "enable_audio": true,
-  "channels": ["news_channel_world"],
-  "avatars": ["avatar_global"],
-  "voice": "neutral",
-  "force_correction": false
-}
-```
-
-#### Kids News Options
-```json
-{
-  "enable_bhiv_push": true,
-  "enable_audio": false,
-  "channels": ["news_channel_kids"],
-  "avatars": ["avatar_fun"],
-  "voice": "friendly",
-  "force_correction": false
-}
-```
-
-## Queue Processing
-
-### Priority System
-- **Priority 10**: Live news (highest priority)
-- **Priority 7**: Finance news
-- **Priority 5**: World news
-- **Priority 3**: Regional news
-- **Priority 1**: Kids news (lowest priority)
-
-### Background Queue Configuration
-- **Max Workers**: 5 concurrent jobs
-- **Max Queue Size**: 1000 jobs
-- **Job Defaults**:
-  - `coalesce`: true (merge missed jobs)
-  - `max_instances`: 3 (limit concurrent instances)
-  - `misfire_grace_time`: 30 seconds
+### Queue Integration
+- All scheduled jobs are submitted to the background queue
+- Queue handles job execution asynchronously
+- Job status can be monitored via `/api/queue/job/{job_id}`
+- Queue statistics available at `/api/queue/stats`
 
 ## Monitoring and Statistics
 
-### Scheduler Statistics
-- `jobs_scheduled`: Total jobs created
-- `jobs_completed`: Successfully processed jobs
-- `jobs_failed`: Failed job executions
-- `last_run`: Timestamp of last job execution
-- `next_runs`: Upcoming job execution times
+### Scheduler Stats
+Available at `/api/scheduler/stats`:
 
-### API Endpoints for Monitoring
-- `GET /api/scheduler/stats` - Current scheduler status and job list
-- `POST /api/scheduler/trigger` - Manual job triggering
-- `GET /api/queue/stats` - Background queue status
+```json
+{
+  "running": true,
+  "stats": {
+    "jobs_scheduled": 25,
+    "jobs_completed": 150,
+    "jobs_failed": 2,
+    "last_run": "2024-01-14T10:30:00.000Z",
+    "next_runs": {...}
+  },
+  "jobs": [
+    {
+      "id": "live_0",
+      "name": "Process live news from https://www.bbc.com/news",
+      "next_run": "2024-01-14T10:45:00.000Z",
+      "trigger": "*/15 * * * *"
+    }
+  ]
+}
+```
 
-## Error Handling and Resilience
+### Queue Stats
+Available at `/api/queue/stats`:
 
-### Job Failure Handling
+```json
+{
+  "pending": 5,
+  "processing": 2,
+  "completed": 143,
+  "failed": 2,
+  "total_processed": 147
+}
+```
+
+## Failure Handling
+
+### Job Failures
+- Individual job failures don't stop the scheduler
 - Failed jobs are logged with error details
-- Statistics track failure rates
-- Jobs continue running even if individual sources fail
+- Statistics track failure counts
+- Jobs can be manually retriggered
 
-### System Stability
-- Background queue prevents scheduler blocking
-- Priority system ensures critical news processing
-- Staggered execution prevents resource spikes
+### System Failures
+- Scheduler can be stopped and restarted via API
+- Jobs are rescheduled on restart (memory store)
+- Misfired jobs are coalesced
 
-## Manual Operations
+## Operational Guidelines
 
-### Triggering Manual Runs
+### Starting the Scheduler
 ```bash
-# Trigger all live news sources
-POST /api/scheduler/trigger?category=live
-
-# Trigger specific source
-POST /api/scheduler/trigger?category=finance&source_url=https://www.bloomberg.com/
-
-# Trigger one source from each category
-POST /api/scheduler/trigger
-```
-
-### Scheduler Control
-```bash
-# Start scheduler
 POST /api/scheduler/start
-
-# Stop scheduler
-POST /api/scheduler/stop
-
-# Get scheduler statistics
-GET /api/scheduler/stats
 ```
 
-## Performance Characteristics
-
-### Expected Load
-- **Live News**: ~96 jobs/day (every 15 minutes × 5 sources)
-- **Finance**: ~120 jobs/day (every hour × 5 sources)
-- **World/Regional/Kids**: ~80 jobs/day each (every 6 hours × 4 sources)
-- **Total Daily Jobs**: ~456 jobs/day
-
-### Processing Times
-- **Average Job Duration**: 2-5 minutes
-- **Peak Concurrent Jobs**: 5 (queue worker limit)
-- **Queue Throughput**: 12 jobs/hour maximum
-
-## Configuration Management
-
-### Environment Variables
-- Scheduler configuration is hardcoded for production stability
-- No environment-based configuration changes allowed
-- All timing and source configurations are fixed
-
-### Category Management
-- Categories are predefined and cannot be modified at runtime
-- Source URLs are static and require code changes for updates
-- Pipeline options are category-specific and fixed
-
-## Production Deployment Notes
-
-### Railway Deployment
-- Scheduler starts automatically with application
-- Uses UTC timezone for consistent scheduling
-- Memory-based job store (jobs lost on restart)
-- Background queue persists across restarts
-
-### Monitoring Recommendations
-- Monitor queue size and worker utilization
-- Track job completion rates by category
-- Alert on scheduler failures or high failure rates
-- Regular review of source URL validity
-
-### Scaling Considerations
-- Current configuration supports moderate load
-- Queue size limits prevent memory issues
-- Worker count can be increased for higher throughput
-- Consider database-persisted job store for production reliability
-
-## Troubleshooting
-
-### Common Issues
-1. **Jobs not executing**: Check scheduler status and queue worker health
-2. **High failure rates**: Verify source URLs and network connectivity
-3. **Queue backlog**: Monitor worker utilization and increase if needed
-4. **Memory issues**: Check queue size limits and job cleanup
-
-### Diagnostic Commands
+### Stopping the Scheduler
 ```bash
-# Check scheduler health
-GET /health
-
-# View active jobs
-GET /api/scheduler/stats
-
-# Check queue status
-GET /api/queue/stats
-
-# View job details
-GET /api/queue/job/{job_id}
+POST /api/scheduler/stop
 ```
 
-This documentation ensures the scheduler behavior is transparent, predictable, and maintainable for production operations.</content>
-</xai:function_call">...
+### Manual Processing
+```bash
+POST /api/scheduler/trigger?category=live&source_url=https://www.bbc.com/news
+```
+
+### Monitoring
+- Check scheduler stats regularly
+- Monitor queue backlog
+- Review failure logs
+- Ensure system resources are adequate
+
+## Production Considerations
+
+### Resource Management
+- Max 3 concurrent jobs prevents overload
+- Queue-based processing allows backpressure
+- Priority system ensures critical news is processed first
+
+### Reliability
+- Memory job store requires careful restart procedures
+- Consider persistent job store for production
+- Monitor queue depth and processing times
+
+### Scaling
+- Increase max_instances for higher throughput
+- Add more workers for queue processing
+- Consider distributed scheduling for multi-instance deployments
+
+## API Endpoints
+
+- `POST /api/scheduler/start` - Start scheduler
+- `POST /api/scheduler/stop` - Stop scheduler
+- `GET /api/scheduler/stats` - Get scheduler statistics
+- `POST /api/scheduler/trigger` - Manual trigger
+
+## Version History
+
+- **v1.0.0**: Initial implementation with 5 categories
+- **Schema Frozen**: Yes (for stable-v1 release)
