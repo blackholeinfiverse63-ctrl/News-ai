@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """
 CI Gate for Stable-v1 Tagging
 
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 class CIGate:
+
     def __init__(self, base_dir: str = "."):
         self.base_dir = Path(base_dir)
         self.errors: List[str] = []
@@ -29,15 +31,19 @@ class CIGate:
                 text=True,
                 timeout=300  # 5 minutes timeout
             )
+
             if result.returncode != 0:
                 self.errors.append(f"Command failed: {' '.join(cmd)}")
                 self.errors.append(f"STDOUT: {result.stdout}")
                 self.errors.append(f"STDERR: {result.stderr}")
                 return False
+
             return True
+
         except subprocess.TimeoutExpired:
             self.errors.append(f"Command timed out: {' '.join(cmd)}")
             return False
+
         except Exception as e:
             self.errors.append(f"Command error: {e}")
             return False
@@ -47,6 +53,14 @@ class CIGate:
         full_path = self.base_dir / file_path
         if not full_path.exists():
             self.errors.append(f"Missing required file: {file_path} ({description})")
+            return False
+        return True
+
+    def check_directory_exists(self, dir_path: str, description: str) -> bool:
+        """Check if a directory exists"""
+        full_path = self.base_dir / dir_path
+        if not full_path.is_dir():
+            self.errors.append(f"Missing required directory: {dir_path} ({description})")
             return False
         return True
 
@@ -68,8 +82,10 @@ class CIGate:
 
     def validate_api_contracts(self) -> bool:
         """Validate API contracts are properly defined"""
-        # Check that contract test file exists
-        if not self.check_file_exists("tests/test_api_contracts.py", "API contract tests"):
+        # Check that contract test file exists and has proper schemas
+        contract_file = self.base_dir / "tests/test_api_contracts.py"
+        if not contract_file.exists():
+            self.errors.append("API contract tests file missing")
             return False
 
         # Check for schema frozen headers in main API
@@ -92,8 +108,8 @@ class CIGate:
         required_docs = [
             "docs/api_documentation.md",
             "docs/fallback_strategy_documentation.md",
-            "docs/reliability_guide.md",
-            "docs/scheduler_behavior.md",
+            "docs/reliability_guide.md",  # We'll create this
+            "docs/scheduler_behavior.md",  # We'll create this
             "README.md"
         ]
 
@@ -105,34 +121,46 @@ class CIGate:
 
     def validate_deterministic_behavior(self) -> bool:
         """Validate that deterministic behavior tests exist"""
-        if not self.check_file_exists("tests/test_deterministic_behavior.py", "Deterministic behavior tests"):
+        # Check for RL deterministic tests
+        rl_test_file = self.base_dir / "tests/test_deterministic_behavior.py"
+        if not rl_test_file.exists():
+            self.errors.append("Deterministic behavior tests missing")
             return False
+
         return True
 
     def validate_load_testing(self) -> bool:
         """Validate that load testing evidence exists"""
+        # Check for load test results
         load_results = self.base_dir / "tests/load_test_results.json"
         if not load_results.exists():
             self.warnings.append("Load test results not found - recommend adding load tests")
-        return True  # Warning, not error
+            return True  # Warning, not error
+
+        return True
 
     def validate_integration_assumptions(self) -> bool:
         """Validate integration assumptions are documented and tested"""
-        if not self.check_file_exists("docs/integration_checklist.md", "Integration assumptions checklist"):
+        checklist_file = self.base_dir / "docs/integration_checklist.md"
+        if not checklist_file.exists():
+            self.errors.append("Integration assumptions checklist missing")
             return False
+
         return True
 
     def run_health_check(self) -> bool:
         """Run a basic health check on the application"""
         print("Running application health check...")
+        # Start the server briefly and check health endpoint
+        # This is simplified - in real CI, might use docker-compose or similar
         try:
+            # Import and test the app directly
             sys.path.insert(0, str(self.base_dir))
             from app.api.main import app
             from fastapi.testclient import TestClient
 
             client = TestClient(app)
             response = client.get("/api/health")
-
             if response.status_code != 200:
                 self.errors.append(f"Health check failed: {response.status_code}")
                 return False
@@ -144,6 +172,7 @@ class CIGate:
 
             print("Health check passed")
             return True
+
         except Exception as e:
             self.errors.append(f"Health check error: {e}")
             return False
@@ -154,7 +183,7 @@ class CIGate:
             "success": len(self.errors) == 0,
             "errors": self.errors,
             "warnings": self.warnings,
-            "timestamp": "2024-01-14T06:00:00.000Z",
+            "timestamp": "2024-01-14T06:00:00.000Z",  # Would use datetime.now()
             "version": "stable-v1-gate-v1.0"
         }
 
@@ -173,6 +202,7 @@ class CIGate:
         ]
 
         all_passed = True
+
         for name, check_func in checks:
             print(f"Running {name} validation...")
             if not check_func():

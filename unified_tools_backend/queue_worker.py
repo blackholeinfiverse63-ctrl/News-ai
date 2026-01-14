@@ -38,6 +38,7 @@ class Job:
     max_retries: int = field(compare=False, default=3)
     error_message: Optional[str] = field(compare=False, default=None)
     completed_at: Optional[datetime] = field(compare=False, default=None)
+    result: Optional[Dict[str, Any]] = field(compare=False, default=None)
 
     def __post_init__(self):
         # Make priority negative for min-heap behavior (higher priority = lower number)
@@ -193,6 +194,7 @@ class BackgroundQueue:
 
             if job.job_type == "news_processing":
                 result = await self._process_news_job(job)
+                job.result = result  # Store the result
             else:
                 raise Exception(f"Unknown job type: {job.job_type}")
 
@@ -323,6 +325,7 @@ class BackgroundQueue:
             "created_at": job.created_at.isoformat(),
             "completed_at": job.completed_at.isoformat() if job.completed_at else None,
             "error_message": job.error_message,
+            "result": job.result,
             "payload": job.payload
         }
 

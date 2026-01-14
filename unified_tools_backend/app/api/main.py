@@ -26,7 +26,8 @@ from queue_worker import background_queue
 setup_logging()
 logger = get_logger(__name__)
 
-# Pydantic models - Request and Response schemas for API contract locking
+# Pydantic models - Versioned API Contract v1.0.0 (LOCKED)
+# All response fields are guaranteed to be present, with null values for optional fields
 class NewsProcessingRequest(BaseModel):
     url: str
     enable_full_pipeline: bool = True
@@ -41,6 +42,8 @@ class NewsProcessingResponse(BaseModel):
     timestamp: str
     job_id: Optional[str] = None
     status: Optional[str] = None
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class BHIVPushRequest(BaseModel):
     channel: str
@@ -52,6 +55,8 @@ class BHIVPushResponse(BaseModel):
     data: Dict[str, Any]
     message: str
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class ChannelAvatarMatrixRequest(BaseModel):
     content: Dict[str, Any]
@@ -63,6 +68,8 @@ class ChannelAvatarMatrixResponse(BaseModel):
     data: Dict[str, Any]
     message: str
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class UnifiedPipelineRequest(BaseModel):
     url: str
@@ -78,7 +85,49 @@ class UnifiedPipelineRequest(BaseModel):
         "avatar_ready": True
     }
 
-class UnifiedPipelineResponse(BaseModel):
+class NewsItemData(BaseModel):
+    title: str
+    content: str
+    summary: str
+    categories: List[str]
+    sentiment: Dict[str, Any]
+    authenticity_score: float
+
+class ScriptData(BaseModel):
+    video_prompt: str
+    tone: str
+    language: str
+    avatar_ready: bool
+
+class RLFeedbackData(BaseModel):
+    reward_score: float
+    quality_gate_passed: bool
+    corrections_applied: int
+
+class BHIVPushData(BaseModel):
+    successful: bool
+    channels: List[str]
+    successful_pushes: int
+
+class AudioData(BaseModel):
+    generated: bool
+    audio_url: Optional[str] = None
+    duration: Optional[float] = None
+    voice: Optional[str] = None
+
+class ProcessingMetrics(BaseModel):
+    total_time: float
+    pipeline_version: str
+    components_used: List[str]
+
+class UnifiedPipelineData(BaseModel):
+    news_item: NewsItemData
+    script: ScriptData
+    rl_feedback: RLFeedbackData
+    bhiv_push: BHIVPushData
+    audio: AudioData
+
+class UnifiedPipelineJobResponse(BaseModel):
     success: bool
     job_id: str
     status: str
@@ -86,6 +135,18 @@ class UnifiedPipelineResponse(BaseModel):
     check_status_url: str
     estimated_completion: str
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
+
+class UnifiedPipelineResponse(BaseModel):
+    success: bool
+    pipeline: str
+    data: UnifiedPipelineData
+    processing_metrics: ProcessingMetrics
+    preview_ready: bool
+    timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class HealthResponse(BaseModel):
     status: str
@@ -97,32 +158,44 @@ class HealthResponse(BaseModel):
     system_info: Dict[str, Any]
     sprint_status: str
     production_ready: bool
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class AgentsResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class RLFeedbackResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class UniguruResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class NewsItemsResponse(BaseModel):
     success: bool
     data: List[Dict[str, Any]]
     count: int
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class JobStatusResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class RootResponse(BaseModel):
     message: str
@@ -130,58 +203,80 @@ class RootResponse(BaseModel):
     status: str
     features: List[str]
     endpoints: Dict[str, str]
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class BHIVStatusResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class BHIVHistoryResponse(BaseModel):
     success: bool
     data: List[Dict[str, Any]]
     count: int
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class AgentTaskResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class TaskStatusResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class WebSocketStatsResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class SampleValidationResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     message: str
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class SchedulerResponse(BaseModel):
     success: bool
     message: str
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class SchedulerStatsResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class QueueStatsResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 class QueueJobResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     timestamp: str
+    api_version: str = "v1.0.0"
+    schema_frozen: bool = True
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -268,14 +363,14 @@ async def startup_event():
     await scheduler.start()
 
 # Health check
-@app.get("/")
+@app.get("/", response_model=RootResponse)
 @limiter.limit(f"{settings.rate_limit_requests_per_minute}/minute")
 async def root(request: Request):
-    return {
-        "message": "News AI Backend + RL Automation - Sprint Complete ✅",
-        "version": "2.0.0",
-        "status": "production_ready",
-        "features": [
+    return RootResponse(
+        message="News AI Backend + RL Automation - Sprint Complete ✅",
+        version="2.0.0",
+        status="production_ready",
+        features=[
             "MCP Agent Registry (5 agents)",
             "RL Feedback Loop with auto-correction",
             "LangGraph Automator Pipeline",
@@ -284,7 +379,7 @@ async def root(request: Request):
             "WebSocket Real-time Streaming",
             "MongoDB Atlas Storage"
         ],
-        "endpoints": {
+        endpoints={
             "health": "/health",
             "process_news": "/api/process-news",
             "automator": "/api/automator/process",
@@ -293,8 +388,10 @@ async def root(request: Request):
             "agents": "/api/agents",
             "rl_metrics": "/api/rl/metrics",
             "unified_pipeline": "/v1/run_pipeline"
-        }
-    }
+        },
+        api_version="v1.0.0",
+        schema_frozen=True
+    )
 
 @app.get("/health", response_model=HealthResponse)
 @limiter.limit(f"{settings.rate_limit_requests_per_minute}/minute")
@@ -381,7 +478,9 @@ async def health_check(request: Request):
                 "debug_mode": settings.debug
             },
             sprint_status="stable",
-            production_ready=True
+            production_ready=True,
+            api_version="v1.0.0",
+            schema_frozen=True
         )
 
     except Exception as e:
@@ -394,11 +493,13 @@ async def health_check(request: Request):
             services={},
             system_info={},
             sprint_status="error",
-            production_ready=False
+            production_ready=False,
+            api_version="v1.0.0",
+            schema_frozen=True
         )
 
 # Unified Pipeline Endpoint (Production Ready - Async with Job Tracking)
-@app.post("/v1/run_pipeline", response_model=UnifiedPipelineResponse)
+@app.post("/v1/run_pipeline", response_model=UnifiedPipelineJobResponse)
 async def run_unified_pipeline(request: UnifiedPipelineRequest):
     """Unified pipeline endpoint for complete News AI processing - Async with job tracking"""
     try:
@@ -414,14 +515,16 @@ async def run_unified_pipeline(request: UnifiedPipelineRequest):
             priority=10  # High priority for direct API calls
         )
 
-        return UnifiedPipelineResponse(
+        return UnifiedPipelineJobResponse(
             success=True,
             job_id=job_id,
             status="queued",
             message="Pipeline job submitted successfully",
             check_status_url=f"/api/queue/job/{job_id}",
             estimated_completion="2-5 minutes",
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            api_version="v1.0.0",
+            schema_frozen=True
         )
 
     except HTTPException:
@@ -529,7 +632,7 @@ async def bhiv_push_history(limit: int = 20):
     }
 
 # Agent Registry endpoints
-@app.get("/api/agents")
+@app.get("/api/agents", response_model=AgentsResponse)
 async def list_agents():
     """List all registered agents"""
     agents_info = []
@@ -543,15 +646,17 @@ async def list_agents():
             "status": agent.status
         })
 
-    return {
-        "success": True,
-        "data": {
+    return AgentsResponse(
+        success=True,
+        data={
             "agents": agents_info,
             "total_agents": len(agents_info),
             "registry_status": "active"
         },
-        "timestamp": datetime.now().isoformat()
-    }
+        timestamp=datetime.now().isoformat(),
+        api_version="v1.0.0",
+        schema_frozen=True
+    )
 
 @app.post("/api/agents/{agent_id}/task")
 async def submit_agent_task(agent_id: str, task_data: Dict[str, Any]):
@@ -802,18 +907,75 @@ async def get_queue_stats():
         "timestamp": datetime.now().isoformat()
     }
 
-@app.get("/api/queue/job/{job_id}")
+@app.get("/api/queue/job/{job_id}", response_model=QueueJobResponse)
 async def get_job_status(job_id: str):
     """Get status of a specific background job"""
     job_status = await background_queue.get_job_status(job_id)
     if not job_status:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    return {
-        "success": True,
-        "data": job_status,
-        "timestamp": datetime.now().isoformat()
-    }
+    # If job is completed and has result, return the pipeline result directly
+    if job_status.get("status") == "completed" and job_status.get("result"):
+        result = job_status["result"]
+        # Convert the result to UnifiedPipelineResponse format
+        try:
+            return UnifiedPipelineResponse(
+                success=result.get("success", False),
+                pipeline=result.get("pipeline", "unified_v1"),
+                data=UnifiedPipelineData(
+                    news_item=NewsItemData(
+                        title=result["data"]["news_item"]["title"],
+                        content=result["data"]["news_item"]["content"],
+                        summary=result["data"]["news_item"]["summary"],
+                        categories=result["data"]["news_item"]["categories"],
+                        sentiment=result["data"]["news_item"]["sentiment"],
+                        authenticity_score=result["data"]["news_item"]["authenticity_score"]
+                    ),
+                    script=ScriptData(
+                        video_prompt=result["data"]["script"]["video_prompt"],
+                        tone=result["data"]["script"]["tone"],
+                        language=result["data"]["script"]["language"],
+                        avatar_ready=result["data"]["script"]["avatar_ready"]
+                    ),
+                    rl_feedback=RLFeedbackData(
+                        reward_score=result["data"]["rl_feedback"]["reward_score"],
+                        quality_gate_passed=result["data"]["rl_feedback"]["quality_gate_passed"],
+                        corrections_applied=result["data"]["rl_feedback"]["corrections_applied"]
+                    ),
+                    bhiv_push=BHIVPushData(
+                        successful=result["data"]["bhiv_push"]["successful"],
+                        channels=result["data"]["bhiv_push"]["channels"],
+                        successful_pushes=result["data"]["bhiv_push"]["successful_pushes"]
+                    ),
+                    audio=AudioData(
+                        generated=result["data"]["audio"]["generated"],
+                        audio_url=result["data"]["audio"].get("audio_url"),
+                        duration=result["data"]["audio"].get("duration"),
+                        voice=result["data"]["audio"].get("voice")
+                    )
+                ),
+                processing_metrics=ProcessingMetrics(
+                    total_time=result["processing_metrics"]["total_time"],
+                    pipeline_version=result["processing_metrics"]["pipeline_version"],
+                    components_used=result["processing_metrics"]["components_used"]
+                ),
+                preview_ready=result.get("preview_ready", True),
+                timestamp=result.get("timestamp", datetime.now().isoformat()),
+                api_version="v1.0.0",
+                schema_frozen=True
+            )
+        except KeyError as e:
+            # If result format is unexpected, return job status
+            pass
+
+    # Return job status for pending/processing/failed jobs
+    return QueueJobResponse(
+        success=True,
+        data=job_status,
+        timestamp=datetime.now().isoformat(),
+        api_version="v1.0.0",
+        schema_frozen=True
+    )
 
 # Legacy testing endpoints for frontend compatibility
 @app.post("/api/scrape")
