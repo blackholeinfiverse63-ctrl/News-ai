@@ -260,53 +260,45 @@ class UnifiedPipeline:
         }
 
     def _compile_final_response(self, news_data: Dict[str, Any], bhiv_result: Dict[str, Any],
-                               audio_result: Dict[str, Any], start_time: datetime) -> Dict[str, Any]:
-        """Compile final response for frontend consumption"""
+                                audio_result: Dict[str, Any], start_time: datetime) -> List[Dict[str, Any]]:
+        """Compile final response in orchestration contract format"""
         processing_time = (datetime.now() - start_time).total_seconds()
+        now = datetime.now().isoformat()
 
-        return {
-            "success": True,
-            "pipeline": "unified_v1",
-            "data": {
-                "news_item": {
-                    "title": news_data.get("title", ""),
-                    "content": news_data.get("content", ""),
-                    "summary": news_data.get("summary", ""),
-                    "categories": news_data.get("categories", []),
-                    "sentiment": news_data.get("sentiment_analysis", {}),
-                    "authenticity_score": news_data.get("authenticity_score", 0)
-                },
-                "script": {
-                    "video_prompt": news_data.get("script_data", {}).get("video_script", ""),
-                    "tone": news_data.get("validation_flags", {}).get("tone_ready", "neutral"),
-                    "language": news_data.get("validation_flags", {}).get("language_ready", "en"),
-                    "avatar_ready": news_data.get("validation_flags", {}).get("avatar_ready", False)
-                },
-                "rl_feedback": {
-                    "reward_score": news_data.get("rl_feedback", {}).get("reward_score", 0),
-                    "quality_gate_passed": news_data.get("rl_feedback", {}).get("reward_score", 0) >= 0.6,
-                    "corrections_applied": news_data.get("corrections_applied", 0)
-                },
-                "bhiv_push": {
-                    "successful": bhiv_result.get("success", False),
-                    "channels": bhiv_result.get("channels", []),
-                    "successful_pushes": bhiv_result.get("data", {}).get("successful_pushes", 0)
-                },
-                "audio": {
-                    "generated": audio_result.get("success", False),
-                    "audio_url": audio_result.get("audio_url"),
-                    "duration": audio_result.get("duration"),
-                    "voice": audio_result.get("voice_used")
-                }
+        # Generate unique ID
+        import hashlib
+        url = news_data.get("url", "")
+        id_hash = hashlib.md5(url.encode()).hexdigest()[:16]
+
+        # Map to orchestration contract format
+        item = {
+            "id": id_hash,
+            "script": {
+                "text": news_data.get("script_data", {}).get("video_script", ""),
+                "headline": news_data.get("title", ""),
+                "bullets": news_data.get("summary", "").split(". ")[:5] if news_data.get("summary") else []
             },
-            "processing_metrics": {
-                "total_time": processing_time,
-                "pipeline_version": "v1.0",
-                "components_used": ["automator", "rl", "bhiv", "audio"]
+            "tone": news_data.get("validation_flags", {}).get("tone_ready", "neutral"),
+            "language": news_data.get("validation_flags", {}).get("language_ready", "en"),
+            "priority_score": float(news_data.get("rl_feedback", {}).get("reward_score", 0.5)),
+            "trend_score": 0.5,  # Default, could be calculated
+            "audio_path": audio_result.get("audio_url") if audio_result.get("success") else None,
+            "video_path": None,  # BHIV not implemented yet
+            "stage_status": {
+                "fetch": "success",
+                "filter": "success",
+                "script": "success",
+                "voice": "success" if audio_result.get("success") else "failed",
+                "avatar": "pending"  # BHIV not implemented
             },
-            "timestamp": datetime.now().isoformat(),
-            "preview_ready": True
+            "timestamps": {
+                "fetched_at": now,
+                "processed_at": now,
+                "completed_at": now
+            }
         }
+
+        return [item]  # Return as list of items
 
     def _create_error_response(self, error_msg: str, partial_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create error response with partial data if available"""
