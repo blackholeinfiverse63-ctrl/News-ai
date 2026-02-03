@@ -1,0 +1,1079 @@
+openapi: 3.0.3
+info:
+  title: News AI Backend API
+  version: v1.0.0
+  description: Comprehensive REST API for automated news processing with reinforcement learning capabilities
+servers:
+  - url: http://localhost:8000
+    description: Development server
+paths:
+  /:
+    get:
+      summary: System overview and status
+      responses:
+        '200':
+          description: System status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  version:
+                    type: string
+  /api/health:
+    get:
+      summary: Comprehensive health check
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  components:
+                    type: object
+  /v1/run_pipeline:
+    post:
+      summary: Unified production pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+                - options
+              properties:
+                url:
+                  type: string
+                  format: uri
+                options:
+                  type: object
+                  properties:
+                    enable_bhiv_push:
+                      type: boolean
+                    enable_audio:
+                      type: boolean
+                    channels:
+                      type: array
+                      items:
+                        type: string
+                    avatars:
+                      type: array
+                      items:
+                        type: string
+                    voice:
+                      type: string
+                    force_correction:
+                      type: boolean
+                    tone:
+                      type: string
+                      enum: [neutral, positive, negative, formal, casual]
+                    language:
+                      type: string
+                      pattern: '^[a-z]{2}$'
+                    avatar_ready:
+                      type: boolean
+      responses:
+        '200':
+          description: Pipeline execution result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  pipeline:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      news_item:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                          content:
+                            type: string
+                          summary:
+                            type: string
+                          categories:
+                            type: array
+                            items:
+                              type: string
+                          sentiment:
+                            type: object
+                            properties:
+                              sentiment:
+                                type: string
+                              polarity:
+                                type: number
+                              confidence:
+                                type: number
+                          authenticity_score:
+                            type: number
+                      script:
+                        type: object
+                        properties:
+                          video_prompt:
+                            type: string
+                          tone:
+                            type: string
+                          language:
+                            type: string
+                          avatar_ready:
+                            type: boolean
+                      rl_feedback:
+                        type: object
+                        properties:
+                          reward_score:
+                            type: number
+                          quality_gate_passed:
+                            type: boolean
+                          corrections_applied:
+                            type: integer
+                      bhiv_push:
+                        type: object
+                        properties:
+                          successful:
+                            type: boolean
+                          channels:
+                            type: array
+                            items:
+                              type: string
+                          successful_pushes:
+                            type: integer
+                      audio:
+                        type: object
+                        properties:
+                          generated:
+                            type: boolean
+                          audio_url:
+                            type: string
+                          duration:
+                            type: number
+                          voice:
+                            type: string
+                  processing_metrics:
+                    type: object
+                    properties:
+                      total_time:
+                        type: number
+                      pipeline_version:
+                        type: string
+                      components_used:
+                        type: array
+                        items:
+                          type: string
+                  preview_ready:
+                    type: boolean
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/process-news:
+    post:
+      summary: Complete news processing pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                enable_full_pipeline:
+                  type: boolean
+                enable_bhiv_push:
+                  type: boolean
+                channel:
+                  type: string
+                avatar:
+                  type: string
+      responses:
+        '200':
+          description: News processing result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      content:
+                        type: string
+                      summary:
+                        type: string
+                      authenticity_score:
+                        type: number
+                      categories:
+                        type: array
+                        items:
+                          type: string
+                      sentiment_analysis:
+                        type: object
+                        properties:
+                          sentiment:
+                            type: string
+                          polarity:
+                            type: number
+                          confidence:
+                            type: number
+                      video_script:
+                        type: string
+                      reward_score:
+                        type: number
+                      processing_metrics:
+                        type: object
+                        properties:
+                          total_steps:
+                            type: integer
+                          retries_used:
+                            type: integer
+                          processing_time:
+                            type: number
+                  message:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/agents:
+    get:
+      summary: List all MCP agents
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      agents:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            role:
+                              type: string
+                            capabilities:
+                              type: array
+                              items:
+                                type: string
+                            priority:
+                              type: integer
+                            status:
+                              type: string
+                      total_agents:
+                        type: integer
+                      registry_status:
+                        type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/agents/{agent_id}/task:
+    post:
+      summary: Submit task to specific agent
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_data:
+                  type: object
+      responses:
+        '200':
+          description: Task submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  task_id:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/tasks/{task_id}:
+    get:
+      summary: Get task status and results
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      agent_id:
+                        type: string
+                      status:
+                        type: string
+                      result:
+                        type: object
+                      error:
+                        type: string
+                      created_at:
+                        type: string
+                        format: date-time
+                      updated_at:
+                        type: string
+                        format: date-time
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/rl/feedback:
+    post:
+      summary: Calculate reward scores
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - news_item
+                - script_output
+              properties:
+                news_item:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    content:
+                      type: string
+                    authenticity_score:
+                      type: number
+                script_output:
+                  type: object
+                  properties:
+                    video_script:
+                      type: string
+      responses:
+        '200':
+          description: RL feedback result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      news_item_id:
+                        type: string
+                      reward_score:
+                        type: number
+                      tone_score:
+                        type: number
+                      engagement_score:
+                        type: number
+                      quality_score:
+                        type: number
+                      correction_needed:
+                        type: boolean
+                      correction_attempts:
+                        type: integer
+                      final_output:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                          content:
+                            type: string
+                          script:
+                            type: string
+                          authenticity_score:
+                            type: number
+                      metrics:
+                        type: object
+                        properties:
+                          content_length:
+                            type: integer
+                          script_length:
+                            type: integer
+                          processing_timestamp:
+                            type: string
+                            format: date-time
+                          reward_components:
+                            type: object
+                            properties:
+                              tone_weight:
+                                type: number
+                              engagement_weight:
+                                type: number
+                              quality_weight:
+                                type: number
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/rl/metrics:
+    get:
+      summary: Get feedback analytics
+      responses:
+        '200':
+          description: RL metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total_feedback_requests:
+                        type: integer
+                      average_reward_score:
+                        type: number
+                      quality_gate_pass_rate:
+                        type: number
+                      correction_rate:
+                        type: number
+                      metrics_by_category:
+                        type: object
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/uniguru/classify:
+    post:
+      summary: Text classification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: Classification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      categories:
+                        type: array
+                        items:
+                          type: string
+                      confidence:
+                        type: number
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/uniguru/sentiment:
+    post:
+      summary: Sentiment analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: Sentiment result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sentiment:
+                        type: string
+                      polarity:
+                        type: number
+                      confidence:
+                        type: number
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/uniguru/summarize:
+    post:
+      summary: Text summarization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: Summarization result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      summary:
+                        type: string
+                      key_points:
+                        type: array
+                        items:
+                          type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/bhiv/push:
+    post:
+      summary: Push to single channel/avatar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+                - channel
+                - avatar
+              properties:
+                content:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    title:
+                      type: string
+                    content:
+                      type: string
+                    summary:
+                      type: string
+                    authenticity_score:
+                      type: number
+                    video_script:
+                      type: string
+                channel:
+                  type: string
+                avatar:
+                  type: string
+      responses:
+        '200':
+          description: Push result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      push_id:
+                        type: string
+                      channel:
+                        type: string
+                      avatar:
+                        type: string
+                      status:
+                        type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/bhiv/matrix-push:
+    post:
+      summary: 3×3 matrix push testing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+                - channels
+                - avatars
+              properties:
+                content:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    title:
+                      type: string
+                    content:
+                      type: string
+                    summary:
+                      type: string
+                    authenticity_score:
+                      type: number
+                    video_script:
+                      type: string
+                channels:
+                  type: array
+                  items:
+                    type: string
+                avatars:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Matrix push result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      matrix_push_complete:
+                        type: boolean
+                      total_combinations:
+                        type: integer
+                      successful_pushes:
+                        type: integer
+                      success_rate:
+                        type: number
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            channel:
+                              type: string
+                            avatar:
+                              type: string
+                            success:
+                              type: boolean
+                            push_id:
+                              type: string
+                            error:
+                              type: string
+                      completed_at:
+                        type: string
+                        format: date-time
+                  message:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/bhiv/status:
+    get:
+      summary: BHIV connectivity check
+      responses:
+        '200':
+          description: BHIV status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      connected:
+                        type: boolean
+                      last_check:
+                        type: string
+                        format: date-time
+                      version:
+                        type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/bhiv/history:
+    get:
+      summary: Push history
+      responses:
+        '200':
+          description: Push history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total_pushes:
+                        type: integer
+                      successful_pushes:
+                        type: integer
+                      failed_pushes:
+                        type: integer
+                      recent_pushes:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            channel:
+                              type: string
+                            avatar:
+                              type: string
+                            status:
+                              type: string
+                            timestamp:
+                              type: string
+                              format: date-time
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/news:
+    get:
+      summary: Retrieve news items
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of news items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        url:
+                          type: string
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        summary:
+                          type: string
+                        authenticity_score:
+                          type: number
+                        categories:
+                          type: array
+                          items:
+                            type: string
+                        sentiment_analysis:
+                          type: object
+                          properties:
+                            sentiment:
+                              type: string
+                            polarity:
+                              type: number
+                            confidence:
+                              type: number
+                        video_script:
+                          type: string
+                        reward_score:
+                          type: number
+                        scraped_at:
+                          type: string
+                          format: date-time
+                        verified_at:
+                          type: string
+                          format: date-time
+                        published_at:
+                          type: string
+                          format: date-time
+                  total:
+                    type: integer
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/news/{item_id}:
+    get:
+      summary: Get specific news item
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: News item details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      url:
+                        type: string
+                      title:
+                        type: string
+                      content:
+                        type: string
+                      summary:
+                        type: string
+                      authenticity_score:
+                        type: number
+                      categories:
+                        type: array
+                        items:
+                          type: string
+                      sentiment_analysis:
+                        type: object
+                        properties:
+                          sentiment:
+                            type: string
+                          polarity:
+                            type: number
+                          confidence:
+                            type: number
+                      video_script:
+                        type: string
+                      reward_score:
+                        type: number
+                      scraped_at:
+                        type: string
+                        format: date-time
+                      verified_at:
+                        type: string
+                        format: date-time
+                      published_at:
+                        type: string
+                        format: date-time
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/websocket/stats:
+    get:
+      summary: WebSocket connection statistics
+      responses:
+        '200':
+          description: WebSocket stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      active_connections:
+                        type: integer
+                      total_connections:
+                        type: integer
+                      messages_sent:
+                        type: integer
+                      messages_received:
+                        type: integer
+                      uptime:
+                        type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    NewsItem:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        summary:
+          type: string
+        authenticity_score:
+          type: number
+        categories:
+          type: array
+          items:
+            type: string
+        sentiment_analysis:
+          type: object
+          properties:
+            sentiment:
+              type: string
+            polarity:
+              type: number
+            confidence:
+              type: number
+        video_script:
+          type: string
+        reward_score:
+          type: number
+        scraped_at:
+          type: string
+          format: date-time
+        verified_at:
+          type: string
+          format: date-time
+        published_at:
+          type: string
+          format: date-time
+    AgentTask:
+      type: object
+      properties:
+        id:
+          type: string
+        agent_id:
+          type: string
+        task_data:
+          type: object
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        result:
+          type: object
+        error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RLFeedback:
+      type: object
+      properties:
+        news_item_id:
+          type: string
+        reward_score:
+          type: number
+        tone_score:
+          type: number
+        engagement_score:
+          type: number
+        quality_score:
+          type: number
+        correction_needed:
+          type: boolean
+        correction_attempts:
+          type: integer
+        metrics:
+          type: object
+          properties:
+            content_length:
+              type: integer
+            script_length:
+              type: integer
+            processing_timestamp:
+              type: string
+              format: date-time
