@@ -1,0 +1,126 @@
+{
+  "url": "https://www.engadget.com/entertainment/streaming/netflix-won-seven-awards-at-the-golden-globes-with-adolescence-and-kpop-demon-hunters-140006510.html",
+  "final_output": {
+    "title": "Netflix won seven awards at the Golden Globes with Adolescence and KPop Demon Hunters",
+    "content": "The 2026 Golden Globes took place on Sunday and it was another big night for streamers. Netflix took home seven awards, Apple and HBO Max each won three and Hulu got one. Netflix's hit show Adolescence received four awards alone, including best limited or anthology series. It also won for best actor (Stephen Graham), supporting actor (Owen Cooper) and supporting actress (Erin Doherty) in a miniseries or television film. KPop Demon Hunters — the sensation which became Netflix's most-watched title — won for best animated feature and best original song. \"I just want to say this award goes to people who have had doors closed on them, and I can confidently say rejection is redirection. So never give up. It is never too late to shine like you were born to be,\" singer-songwriter EJAE said in her acceptance speech for the song, Golden. Netflix also won for best performance in stand-up comedy on television for Ricky Gervais: Mortality. Apple TV took home two awards for The Studio: best television series musical or comedy and best performance by a male actor in a television series for Seth Rogen. The streamer also won for best performance by a lead actress in a television series drama thanks to Rhea Seehorn in Pluribus. The Pitt gave HBO Max two of its three awards, with trophies for best television series drama and best performance by a lead actor in a television series drama to Noah Wyle. Jean Smart rounded out the streamer's awards with best performance by a lead actress in a television series musical or comedy for Hacks. Hulu's award came through best performance by a lead actress in a limited or anthology series for Michelle Williams in Dying For Sex. This year also brought a first to the Golden Globes: the best podcast category. Amy Poehler won for Good Hang with Amy Poehler, a podcast that has featured interviews with everyone from Tina Fey to Quinta Brunson since debuting in March last year. Fellow nominees included Alex Cooper's Call Her Daddy and Armchair Expert with Dax Shepard.  © 2026 Yahoo. All rights reserved.",
+    "summary": "The 2026 Golden Globes took place on Sunday and it was another big night for streamers. .",
+    "categories": [
+      "news",
+      "sports",
+      "politics",
+      "technology",
+      "entertainment"
+    ],
+    "sentiment_analysis": {
+      "sentiment": "positive",
+      "polarity": 0.5,
+      "confidence": 0.6
+    },
+    "video_script": "Breaking News: Netflix won seven awards at the Golden Globes with Adolescence and KPop Demon Hunters\n\nThe 2026 Golden Globes took place on Sunday and it was another big night for streamers. Netflix took home seven awards, Apple and HBO Max each won three and Hulu got one. Netflix's hit show Adolescenc...\n\nStay tuned for more updates.",
+    "authenticity_score": 80,
+    "reward_score": 0.92,
+    "processing_complete": true
+  },
+  "audio": {
+    "success": true,
+    "audio_url": "https://audio.news-ai.com/generated/1769841501.057603.mp3",
+    "duration": 0.0,
+    "voice_used": "default"
+  },
+  "bhiv_payload": {
+    "orchestration_request": {
+      "request_id": "news_ai_1769841501.057643",
+      "timestamp": "2026-01-31T12:08:21.057645",
+      "source": "news_ai_backend",
+      "version": "1.0"
+    },
+    "content": {
+      "id": "demo_1769841501",
+      "type": "news_article",
+      "title": "Netflix won seven awards at the Golden Globes with Adolescence and KPop Demon Hunters",
+      "summary": "The 2026 Golden Globes took place on Sunday and it was another big night for streamers. .",
+      "full_content": "The 2026 Golden Globes took place on Sunday and it was another big night for streamers. Netflix took home seven awards, Apple and HBO Max each won three and Hulu got one. Netflix's hit show Adolescence received four awards alone, including best limited or anthology series. It also won for best actor (Stephen Graham), supporting actor (Owen Cooper) and supporting actress (Erin Doherty) in a miniseries or television film. KPop Demon Hunters — the sensation which became Netflix's most-watched title — won for best animated feature and best original song. \"I just want to say this award goes to people who have had doors closed on them, and I can confidently say rejection is redirection. So never give up. It is never too late to shine like you were born to be,\" singer-songwriter EJAE said in her acceptance speech for the song, Golden. Netflix also won for best performance in stand-up comedy on television for Ricky Gervais: Mortality. Apple TV took home two awards for The Studio: best television series musical or comedy and best performance by a male actor in a television series for Seth Rogen. The streamer also won for best performance by a lead actress in a television series drama thanks to Rhea Seehorn in Pluribus. The Pitt gave HBO Max two of its three awards, with trophies for best television series drama and best performance by a lead actor in a television series drama to Noah Wyle. Jean Smart rounded out the streamer's awards with best performance by a lead actress in a television series musical or comedy for Hacks. Hulu's award came through best performance by a lead actress in a limited or anthology series for Michelle Williams in Dying For Sex. This year also brought a first to the Golden Globes: the best podcast category. Amy Poehler won for Good Hang with Amy Poehler, a podcast that has featured interviews with everyone from Tina Fey to Quinta Brunson since debuting in March last year. Fellow nominees included Alex Cooper's Call Her Daddy and Armchair Expert with Dax Shepard.  © 2026 Yahoo. All rights reserved.",
+      "categories": [
+        "news",
+        "sports",
+        "politics",
+        "technology",
+        "entertainment"
+      ],
+      "sentiment": {
+        "sentiment": "positive",
+        "polarity": 0.5,
+        "confidence": 0.6
+      },
+      "authenticity_score": 80,
+      "metadata": {
+        "word_count": 350,
+        "reading_time_minutes": 1,
+        "source_url": "https://www.engadget.com/entertainment/streaming/netflix-won-seven-awards-at-the-golden-globes-with-adolescence-and-kpop-demon-hunters-140006510.html",
+        "scraped_at": "2026-01-31T12:08:20.002389",
+        "processed_at": "2026-01-31T12:08:21.057721"
+      }
+    },
+    "video_generation": {
+      "channel": "news_channel_1",
+      "avatar": "avatar_alice",
+      "script": "Breaking News: Netflix won seven awards at the Golden Globes with Adolescence and KPop Demon Hunters\n\nThe 2026 Golden Globes took place on Sunday and it was another big night for streamers. Netflix took home seven awards, Apple and HBO Max each won three and Hulu got one. Netflix's hit show Adolescenc...\n\nStay tuned for more updates.",
+      "style": "news_broadcast",
+      "duration_target": "30-60_seconds",
+      "quality": "high",
+      "platform_optimization": {
+        "youtube": true,
+        "tiktok": false,
+        "instagram": false
+      }
+    },
+    "distribution": {
+      "channels": [
+        "news_channel_1"
+      ],
+      "avatars": [
+        "avatar_alice"
+      ],
+      "auto_publish": true,
+      "schedule": "immediate"
+    },
+    "analytics": {
+      "track_performance": true,
+      "measure_engagement": true,
+      "rl_feedback_enabled": true,
+      "reward_score": 0.92
+    },
+    "additional_metadata": {}
+  },
+  "rl_feedback": {
+    "news_item_id": "demo_1",
+    "reward_score": 0.92,
+    "tone_score": 0.8,
+    "engagement_score": 0.95,
+    "quality_score": 1.0,
+    "correction_needed": false,
+    "correction_attempts": 0,
+    "final_output": {
+      "title": "Netflix won seven awards at the Golden Globes with Adolescence and KPop Demon Hunters",
+      "content": "The 2026 Golden Globes took place on Sunday and it was another big night for streamers. Netflix took home seven awards, Apple and HBO Max each won three and Hulu got one. Netflix's hit show Adolescence received four awards alone, including best limited or anthology series. It also won for best actor (Stephen Graham), supporting actor (Owen Cooper) and supporting actress (Erin Doherty) in a miniseries or television film. KPop Demon Hunters — the sensation which became Netflix's most-watched title — won for best animated feature and best original song. \"I just want to say this award goes to people who have had doors closed on them, and I can confidently say rejection is redirection. So never give up. It is never too late to shine like you were born to be,\" singer-songwriter EJAE said in her acceptance speech for the song, Golden. Netflix also won for best performance in stand-up comedy on television for Ricky Gervais: Mortality. Apple TV took home two awards for The Studio: best television series musical or comedy and best performance by a male actor in a television series for Seth Rogen. The streamer also won for best performance by a lead actress in a television series drama thanks to Rhea Seehorn in Pluribus. The Pitt gave HBO Max two of its three awards, with trophies for best television series drama and best performance by a lead actor in a television series drama to Noah Wyle. Jean Smart rounded out the streamer's awards with best performance by a lead actress in a television series musical or comedy for Hacks. Hulu's award came through best performance by a lead actress in a limited or anthology series for Michelle Williams in Dying For Sex. This year also brought a first to the Golden Globes: the best podcast category. Amy Poehler won for Good Hang with Amy Poehler, a podcast that has featured interviews with everyone from Tina Fey to Quinta Brunson since debuting in March last year. Fellow nominees included Alex Cooper's Call Her Daddy and Armchair Expert with Dax Shepard.  © 2026 Yahoo. All rights reserved.",
+      "script": "Breaking News: Netflix won seven awards at the Golden Globes with Adolescence and KPop Demon Hunters\n\nThe 2026 Golden Globes took place on Sunday and it was another big night for streamers. Netflix took home seven awards, Apple and HBO Max each won three and Hulu got one. Netflix's hit show Adolescenc...\n\nStay tuned for more updates.",
+      "authenticity_score": 80
+    },
+    "metrics": {
+      "content_length": 350,
+      "script_length": 57,
+      "processing_timestamp": "2026-01-31T12:08:20.004032",
+      "latency_seconds": 0.0,
+      "reward_components": {
+        "tone_weight": 0.3,
+        "engagement_weight": 0.4,
+        "quality_weight": 0.3
+      }
+    },
+    "adaptive_scaling": {
+      "enabled": true,
+      "performance_history_size": 0
+    }
+  },
+  "timestamp": "2026-01-31T12:08:21.057735"
+}

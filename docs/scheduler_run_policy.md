@@ -140,3 +140,27 @@ This run policy is versioned with the API contract. Changes require:
 2. Code review
 3. Testing in staging environment
 4. Gradual rollout with monitoring
+
+## Three-Day Integration & Deployment Checklist
+
+A compact, three-day plan to finalize contract, verify end-to-end integration, and deploy with failure discipline.
+
+### Day 1 — Contract Lock & Integration Sync
+- Freeze orchestration contract (single canonical JSON) as `orchestration_contract_v1.json`
+- Confirm backend fields, null behavior, and error rules with API owners
+- Frontend aligns to final contract; no schema changes after this point
+- Deliverable: `orchestration_contract_v1.json`
+
+### Day 2 — End-to-End Integration & Staging
+- Run full pipeline with real data (no mocks)
+- Frontend consumes only live APIs; audio playback, feedback loop, and pipeline states verified
+- Fix only integration-blocking issues; document any non-blocking follow-ups
+- Deliverable: working staging system (local or staging URLs)
+
+### Day 3 — Deployment & Failure Discipline
+- Deploy frontend to Vercel (staging or production)
+- Ensure backend endpoints reachable from deployed frontend; validate security headers, JWTs, and request signing
+- Validate clear failure behavior (no silent fallbacks) and rollback plan
+- Deliverable: live URL + deployment notes
+
+> **Note:** Each day's completion must include verification steps, test artifacts (logs, screenshots, smoke-test results), and a short "accept/rollback" decision recorded in deployment notes.
